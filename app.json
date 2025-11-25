@@ -9,7 +9,9 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier:": "com.ah.ExpenseTrackerApp",
+      "icon": "./assets/images/icon.png"
     },
     "android": {
       "adaptiveIcon": {
