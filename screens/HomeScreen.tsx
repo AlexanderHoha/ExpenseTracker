@@ -57,16 +57,13 @@ export default function HomeScreen() {
   const loadCategories = async () => {
     try {
       const existingCategories = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
-      console.log(`exising categories: ${existingCategories}`);
       if (existingCategories) {
         let expenseCategories = JSON.parse(existingCategories) as ExpenseCategory[];
         setCategories(expenseCategories);
-        console.log(`categories: ${JSON.stringify(expenseCategories)}`);
 
         return expenseCategories;
       }
 
-      console.log('setting default categories');
       await AsyncStorage.setItem(STORAGE_KEYS.EXPENSE_CATEGORIES, JSON.stringify(DEFAULT_EXPENSE_CATEGORIES))
       const defaultCategories = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
       if (defaultCategories) {
@@ -75,12 +72,12 @@ export default function HomeScreen() {
 
         return expenseCategories;
       } else {
-        console.log('failed to set default categories');
+        console.error('failed to set default categories');
 
         return [];
       }
     } catch (e) {
-      console.log(`error while setting categories: ${e}`);
+      console.error(`error while setting categories: ${e}`);
 
       return [];
     }
@@ -111,7 +108,6 @@ export default function HomeScreen() {
       date: new Date().toISOString(),
     }
 
-    console.log(`trying to add expense ${JSON.stringify([...expenses])}`);
     setExpenses([...expenses, createExpense(Date.now(),
       parseFloat(amount),
       category,
@@ -188,9 +184,7 @@ export default function HomeScreen() {
               const categoryToAdd = createExpenseCategory(lastCategoryId + 1, newCategoryName);
               const updatedCategories = [...categories, categoryToAdd];
               setCategories(updatedCategories);
-              console.log(`added category ${JSON.stringify(newCategoryName)}`);
-              console.log(`ALL categories: ${JSON.stringify(categories)}`);
-              await AsyncStorage.setItem(STORAGE_KEYS.EXPENSE_CATEGORIES, JSON.stringify(categories))
+              await AsyncStorage.setItem(STORAGE_KEYS.EXPENSE_CATEGORIES, JSON.stringify(updatedCategories))
               addCategorySetModalVisible(false);
               selectCategorySetModalVisible(true);
             }}>
@@ -217,12 +211,12 @@ export default function HomeScreen() {
         <Pressable
           style={clearStorageButtonStyles.clearButton}
           onPress={async () => {
-            console.log(`All keys: ${await AsyncStorage.getAllKeys()}`);
+            console.info(`All keys: ${await AsyncStorage.getAllKeys()}`);
             const storedExpenses = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSES);
             if (storedExpenses) {
-              console.log(`storedExpenses: ${JSON.stringify(storedExpenses)}`)
+              console.info(`storedExpenses: ${JSON.stringify(storedExpenses)}`)
               const parsed: Expense[] = JSON.parse(storedExpenses);
-              console.log(`PARSED expenses: ${JSON.stringify(parsed)}`);
+              console.info(`PARSED expenses: ${JSON.stringify(parsed)}`);
             }
             await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
             await AsyncStorage.removeItem(STORAGE_KEYS.EXPENSES);
@@ -232,12 +226,12 @@ export default function HomeScreen() {
 
         {/* <Pressable
           onPress={async () => {
-            console.log(`All keys: ${await AsyncStorage.getAllKeys()}`);
+            console.info(`All keys: ${await AsyncStorage.getAllKeys()}`);
             const storedCategories = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
             if (storedCategories) {
-              console.log(storedCategories)
+              console.info(storedCategories)
               const parsed: Expense[] = JSON.parse(storedCategories);
-              console.log(`PARSED categories: ${parsed}`);
+              console.info(`PARSED categories: ${parsed}`);
             }
             await AsyncStorage.removeItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
           }}>
