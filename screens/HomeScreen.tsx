@@ -119,9 +119,12 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <TextInput
         style={amountTextboxStyles.amountInput}
-        placeholder="Input amount"
-        keyboardType="numeric"
-        onChangeText={setAmount}
+        placeholder='Input amount'
+        keyboardType='numeric'
+        onChangeText={(amount) => {
+          const numericText = amount.replace(/[^0-9.]/g, '');
+          setAmount(numericText);
+        }}
         value={amount}
       />
 
