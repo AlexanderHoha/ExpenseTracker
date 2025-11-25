@@ -185,7 +185,11 @@ export default function HomeScreen() {
             </TextInput>
             <Pressable onPress={async () => {
               const lastCategoryId = Math.max(...categories.map(_ => _.id));
-              setCategories([...categories, createExpenseCategory(lastCategoryId + 1, newCategoryName)]);
+              const categoryToAdd = createExpenseCategory(lastCategoryId + 1, newCategoryName);
+              const updatedCategories = [...categories, categoryToAdd];
+              setCategories(updatedCategories);
+              console.log(`added category ${JSON.stringify(newCategoryName)}`);
+              console.log(`ALL categories: ${JSON.stringify(categories)}`);
               await AsyncStorage.setItem(STORAGE_KEYS.EXPENSE_CATEGORIES, JSON.stringify(categories))
               addCategorySetModalVisible(false);
               selectCategorySetModalVisible(true);
