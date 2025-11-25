@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Expense } from "@/types/expense";
 import { STORAGE_KEYS } from "@/constants/storage-keys";
-import { toDateString } from "@/utils/factories/dateUtils";
+import { DateUtils } from "@/utils/dateUtils";
 
 export default function HistoryScreen() {
     const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -53,7 +53,7 @@ export default function HistoryScreen() {
                         renderItem={({ item }) => (
                             <View style={expenseItemStyles.item}>
                                 <Text style={{ justifyContent: 'space-around' }}>
-                                    {item.amount} | {item.category} | {toDateString(item.date)}
+                                    {item.amount} | {item.category} | {DateUtils.toDateString(item.date)}
                                 </Text>
                             </View>
                         )}>
