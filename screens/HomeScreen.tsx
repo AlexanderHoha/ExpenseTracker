@@ -5,29 +5,85 @@ import { Expense } from '@/types/expense';
 import { STORAGE_KEYS } from '@/constants/storage-keys';
 import { DEFAULT_EXPENSE_CATEGORIES } from '@/constants/defaultExpenseCategories';
 import { ExpenseCategory } from '@/types/expenseCategory';
+import { createExpenseCategory } from '@/utils/factories/expenseCategoryFactory';
 
 export default function HomeScreen() {
-  const [modalVisible, setModalVisible] = useState(false);
+  const [selectCategoryModalVisible, selectCategorySetModalVisible] = useState(false);
+  const [addCategorymodalVisible, addCategorySetModalVisible] = useState(false);
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  let Categories = ['Food', 'Leisure', 'Other']
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   useEffect(() => {
+    async function init() {
+      const loadedCategories: ExpenseCategory[] = await loadCategories();
+      console.log(`trying to set default category, all categories: ${JSON.stringify(loadedCategories)}`)
+      setCategory(loadedCategories[0].name);
+    }
+
+    init();
     loadExpenses();
-    setCategory(Categories[0]);
   }, []);
 
   const loadExpenses = async () => {
     try {
+      console.log(`trying to load expenses`);
       const expenses = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSES);
       if (expenses) {
-        setExpenses(JSON.parse(expenses));
+        let parsedExpenses: Expense[] = JSON.parse(expenses);
+        if (!Array.isArray(parsedExpenses)) {
+          console.warn("Expenses corrupted in storage, resetting to empty array");
+          parsedExpenses = [];
+          await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
+        }
+        console.log(`parsed expenses: ${JSON.stringify(parsedExpenses)}`);
+        setExpenses(parsedExpenses);
+
+        return parsedExpenses;
       }
+
+      return [];
     } catch (error) {
-      console.error('Error while loading expenses', error)
+      console.error('Error while loading expenses', error);
+
+      return [];
     }
   };
+
+  // If no categories in async storage - fill storage with default categories
+  const loadCategories = async () => {
+    try {
+      const existingCategories = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
+      console.log(`exising categories: ${existingCategories}`);
+      if (existingCategories) {
+        let expenseCategories = JSON.parse(existingCategories) as ExpenseCategory[];
+        setCategories(expenseCategories);
+        console.log(`categories: ${JSON.stringify(expenseCategories)}`);
+
+        return expenseCategories;
+      }
+
+      console.log('setting default categories');
+      await AsyncStorage.setItem(STORAGE_KEYS.EXPENSE_CATEGORIES, JSON.stringify(DEFAULT_EXPENSE_CATEGORIES))
+      const defaultCategories = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
+      if (defaultCategories) {
+        let expenseCategories = JSON.parse(defaultCategories);
+        setCategories(expenseCategories);
+
+        return expenseCategories;
+      } else {
+        console.log('failed to set default categories');
+
+        return [];
+      }
+    } catch (e) {
+      console.log(`error while setting categories: ${e}`);
+
+      return [];
+    }
+  }
 
   useEffect(() => {
     saveExpenses();
@@ -51,9 +107,10 @@ export default function HomeScreen() {
       id: Date.now(),
       amount: parseFloat(amount),
       category: category,
-      date: new Date()
+      date: new Date().toISOString(),
     }
 
+    console.log(`trying to add expense ${JSON.stringify([...expenses])}`);
     setExpenses([...expenses, newExpense]);
     setAmount('');
   }
@@ -70,27 +127,27 @@ export default function HomeScreen() {
 
       <Pressable
         style={chooseCategoryButtonStyles.categoryButton}
-        onPress={() => setModalVisible(true)}>
+        onPress={() => selectCategorySetModalVisible(true)}>
         <Text style={chooseCategoryButtonStyles.categoryButtonText}>
           {category}
         </Text>
       </Pressable>
 
       <Modal
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        visible={selectCategoryModalVisible}
+        onRequestClose={() => selectCategorySetModalVisible(false)}
         allowSwipeDismissal={true}>
         <View style={modalStyles.modalOverlay}>
           <View style={modalStyles.modalContent}>
             <Text style={modalStyles.modalTitle}>Choose Category</Text>
             <FlatList
-              data={Categories}
+              data={categories.map(category => category.name)}
               keyExtractor={(item: string) => item}
-              renderItem={({ item } : { item : string }) =>
+              renderItem={({ item }: { item: string }) =>
                 <Pressable
                   style={modalStyles.categoryItem}
                   onPress={() => {
-                    setModalVisible(false);
+                    selectCategorySetModalVisible(false);
                     setCategory(item);
                   }}
                 >
@@ -98,9 +155,45 @@ export default function HomeScreen() {
                 </Pressable>
               }
             />
+            <Pressable onPress={() =>{
+              selectCategorySetModalVisible(false);
+              addCategorySetModalVisible(true);
+            }}>
+              <Text style={{ textAlign: 'center', fontSize: 25 }}>Add category</Text>
+            </Pressable>
             <Pressable style={modalStyles.closeButton}
-              onPress={() => setModalVisible(false)}>
+              onPress={() => selectCategorySetModalVisible(false)}>
               <Text style={modalStyles.closeButtonText}>Close</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={addCategorymodalVisible}
+        onRequestClose={() => addCategorySetModalVisible(false)}
+        allowSwipeDismissal={true}>
+        <View style={modalStyles.modalOverlay}>
+          <View style={modalStyles.modalContent}>
+            <TextInput style={amountTextboxStyles.amountInput}
+              placeholder='Category Name'
+              onChangeText={setNewCategoryName}>
+              </TextInput>
+            <Pressable onPress={async () => {
+              const lastCategoryId = Math.max(...categories.map(_ => _.id));
+              setCategories([...categories, createExpenseCategory(lastCategoryId + 1, newCategoryName)]);
+              await AsyncStorage.setItem(STORAGE_KEYS.EXPENSE_CATEGORIES, JSON.stringify(categories))
+              addCategorySetModalVisible(false);
+              selectCategorySetModalVisible(true);
+            }}>
+              <Text style={{textAlign: 'center'}}>Add Category</Text>
+            </Pressable>
+            <Pressable style={modalStyles.closeButton}
+              onPress={() =>{
+                addCategorySetModalVisible(false);
+                selectCategorySetModalVisible(true);
+              }}>
+              <Text>Close</Text>
             </Pressable>
           </View>
         </View>
@@ -118,14 +211,29 @@ export default function HomeScreen() {
           console.log(`All keys: ${await AsyncStorage.getAllKeys()}`);
           const storedExpenses = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSES);
           if (storedExpenses) {
-            console.log(storedExpenses)
+            console.log(`storedExpenses: ${JSON.stringify(storedExpenses)}`)
             const parsed: Expense[] = JSON.parse(storedExpenses);
-            console.log(`PARSED: ${parsed}`);
+            console.log(`PARSED expenses: ${JSON.stringify(parsed)}`);
           }
+          await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
           await AsyncStorage.removeItem(STORAGE_KEYS.EXPENSES);
         }}>
-        <Text style={clearStorageButtonStyles.clearButtonText}>CLEAR LOCAL STORAGE</Text>
+        <Text style={clearStorageButtonStyles.clearButtonText}>CLEAR LOCAL STORAGE EXPENSES</Text>
       </Pressable>
+
+      {/* <Pressable
+          onPress={async () => {
+            console.log(`All keys: ${await AsyncStorage.getAllKeys()}`);
+            const storedCategories = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
+            if (storedCategories) {
+              console.log(storedCategories)
+              const parsed: Expense[] = JSON.parse(storedCategories);
+              console.log(`PARSED categories: ${parsed}`);
+            }
+            await AsyncStorage.removeItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
+          }}>
+          <Text style={clearStorageButtonStyles.clearButtonText}>CLEAR LOCAL STORAGE CATEGORIES</Text>
+        </Pressable> */}
     </View>
   );
 }
