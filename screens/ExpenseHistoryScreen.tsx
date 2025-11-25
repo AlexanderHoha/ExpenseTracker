@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Expense } from "@/types/expense";
 import { STORAGE_KEYS } from "@/constants/storage-keys";
+import { toDateString } from "@/utils/factories/dateUtils";
 
 export default function HistoryScreen() {
     const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -24,7 +25,7 @@ export default function HistoryScreen() {
             console.info(`stored: ${storedExpenses}`)
             if (storedExpenses) {
                 const parsed: Expense[] = JSON.parse(storedExpenses);
-                console.info(`parsed: ${parsed}`);
+                console.info(`stored expenses: ${JSON.stringify(parsed)}`);
                 setExpenses(parsed);
             }
         } catch (error) {
@@ -39,6 +40,7 @@ export default function HistoryScreen() {
                 <Text style={{ textAlign: 'center', fontSize: 25 }}>Expense history</Text>
                 <View style={{ flex: 2 }}>
                     <FlatList
+                    style={expensesFlatListStyles.container}
                         contentContainerStyle={{ alignItems: 'stretch' }}
                         data={expenses}
                         keyExtractor={(item) => item.id.toString()}
@@ -49,9 +51,9 @@ export default function HistoryScreen() {
                             </RefreshControl>
                         }
                         renderItem={({ item }) => (
-                            <View style={{ padding: 15, borderColor: 'red' }}>
+                            <View style={expenseItemStyles.item}>
                                 <Text style={{ justifyContent: 'space-around' }}>
-                                    {item.amount} | {item.category} | {item.date.toLocaleString()}
+                                    {item.amount} | {item.category} | {toDateString(item.date)}
                                 </Text>
                             </View>
                         )}>
@@ -68,6 +70,23 @@ const styles = StyleSheet.create({
         padding: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        flexDirection: 'row'
+        flexDirection: 'row',
+    }
+});
+
+const expensesFlatListStyles = StyleSheet.create({
+    container: {
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+        padding: 0
+    },
+});
+
+const expenseItemStyles = StyleSheet.create({
+    item: {
+        padding: 14,
+        borderRadius: 8,
+        fontSize: 16,
     }
 });
