@@ -21,10 +21,10 @@ export default function HistoryScreen() {
     const loadExpenses = async () => {
         try {
             const storedExpenses = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSES);
-            console.log(`stored: ${storedExpenses}`)
+            console.info(`stored: ${storedExpenses}`)
             if (storedExpenses) {
                 const parsed: Expense[] = JSON.parse(storedExpenses);
-                console.log(`parsed: ${parsed}`);
+                console.info(`parsed: ${parsed}`);
                 setExpenses(parsed);
             }
         } catch (error) {
@@ -50,7 +50,7 @@ export default function HistoryScreen() {
                         }
                         renderItem={({ item }) => (
                             <View style={{ padding: 15, borderColor: 'red' }}>
-                                <Text style={{ justifyContent: 'flex-start' }}>
+                                <Text style={{ justifyContent: 'space-around' }}>
                                     {item.amount} | {item.category} | {item.date.toLocaleString()}
                                 </Text>
                             </View>
