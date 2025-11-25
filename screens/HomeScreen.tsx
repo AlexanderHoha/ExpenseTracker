@@ -207,36 +207,37 @@ export default function HomeScreen() {
         <Text style={addExpenseButtonStyles.addButtonText}>Add Expense</Text>
       </Pressable>
 
-      
-        <Pressable
-          style={clearStorageButtonStyles.clearButton}
-          onPress={async () => {
-            console.info(`All keys: ${await AsyncStorage.getAllKeys()}`);
-            const storedExpenses = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSES);
-            if (storedExpenses) {
-              console.info(`storedExpenses: ${JSON.stringify(storedExpenses)}`)
-              const parsed: Expense[] = JSON.parse(storedExpenses);
-              console.info(`PARSED expenses: ${JSON.stringify(parsed)}`);
-            }
-            await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
-            await AsyncStorage.removeItem(STORAGE_KEYS.EXPENSES);
-          }}>
-          <Text style={clearStorageButtonStyles.clearButtonText}>CLEAR LOCAL STORAGE EXPENSES</Text>
-        </Pressable>
 
-        {/* <Pressable
-          onPress={async () => {
-            console.info(`All keys: ${await AsyncStorage.getAllKeys()}`);
-            const storedCategories = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
-            if (storedCategories) {
-              console.info(storedCategories)
-              const parsed: Expense[] = JSON.parse(storedCategories);
-              console.info(`PARSED categories: ${parsed}`);
-            }
-            await AsyncStorage.removeItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
-          }}>
-          <Text style={clearStorageButtonStyles.clearButtonText}>CLEAR LOCAL STORAGE CATEGORIES</Text>
-        </Pressable> */}
+      <Pressable
+        style={clearStorageButtonStyles.clearButton}
+        onPress={async () => {
+          console.info(`All keys: ${await AsyncStorage.getAllKeys()}`);
+          const storedExpenses = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSES);
+          if (storedExpenses) {
+            console.info(`storedExpenses: ${JSON.stringify(storedExpenses)}`)
+            const parsed: Expense[] = JSON.parse(storedExpenses);
+            console.info(`PARSED expenses: ${JSON.stringify(parsed)}`);
+          }
+          await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
+          await AsyncStorage.removeItem(STORAGE_KEYS.EXPENSES);
+        }}>
+        <Text style={clearStorageButtonStyles.clearButtonText}>CLEAR LOCAL STORAGE EXPENSES</Text>
+      </Pressable>
+
+      <Pressable
+        style={clearCategoriesButtonStyles.clearButton}
+        onPress={async () => {
+          console.info(`All keys: ${await AsyncStorage.getAllKeys()}`);
+          const storedCategories = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
+          if (storedCategories) {
+            console.info(storedCategories)
+            const parsed: Expense[] = JSON.parse(storedCategories);
+            console.info(`PARSED categories: ${JSON.stringify(parsed)}`);
+          }
+          await AsyncStorage.removeItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
+        }}>
+        <Text style={clearStorageButtonStyles.clearButtonText}>CLEAR LOCAL STORAGE CATEGORIES</Text>
+      </Pressable>
     </View>
   );
 }
@@ -246,7 +247,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
 });
 
@@ -311,6 +312,33 @@ const clearStorageButtonStyles = StyleSheet.create({
   clearButton: {
     position: 'absolute',
     bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: '#dc3545',
+    borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  clearButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+});
+
+const clearCategoriesButtonStyles = StyleSheet.create({
+  clearButton: {
+    position: 'absolute',
+    bottom: 70,
     left: 20,
     right: 20,
     backgroundColor: '#dc3545',
