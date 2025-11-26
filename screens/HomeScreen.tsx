@@ -2,18 +2,19 @@ import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Pressable, Modal, FlatList } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Expense } from '@/types/expense';
-import { STORAGE_KEYS } from '@/constants/storage-keys';
+import { STORAGE_KEYS } from '@/constants/storageKeys';
 import { DEFAULT_EXPENSE_CATEGORIES } from '@/constants/defaultExpenseCategories';
 import { ExpenseCategory } from '@/types/expenseCategory';
 import { createExpenseCategory } from '@/utils/factories/expenseCategoryFactory';
-import { createExpense } from '@/utils/factories/expenseFactory';
+import { StorageService } from '@/services/storageService';
+import { AddExpenseButton } from '@/components/HomeScreenComponents/AddExpenseButton';
+import { TotalSpentText } from '@/components/HomeScreenComponents/totalSpentText';
 
 export default function HomeScreen() {
   const [selectCategoryModalVisible, selectCategorySetModalVisible] = useState(false);
   const [addCategorymodalVisible, addCategorySetModalVisible] = useState(false);
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
-  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [newCategoryName, setNewCategoryName] = useState('');
 
@@ -25,33 +26,7 @@ export default function HomeScreen() {
     }
 
     init();
-    loadExpenses();
   }, []);
-
-  const loadExpenses = async () => {
-    try {
-      console.log(`trying to load expenses`);
-      const expenses = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSES);
-      if (expenses) {
-        let parsedExpenses: Expense[] = JSON.parse(expenses);
-        if (!Array.isArray(parsedExpenses)) {
-          console.warn("Expenses corrupted in storage, resetting to empty array");
-          parsedExpenses = [];
-          await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
-        }
-        console.log(`parsed expenses: ${JSON.stringify(parsedExpenses)}`);
-        setExpenses(parsedExpenses);
-
-        return parsedExpenses;
-      }
-
-      return [];
-    } catch (error) {
-      console.error('Error while loading expenses', error);
-
-      return [];
-    }
-  };
 
   // If no categories in async storage - fill storage with default categories
   const loadCategories = async () => {
@@ -83,40 +58,10 @@ export default function HomeScreen() {
     }
   }
 
-  useEffect(() => {
-    saveExpenses();
-  }, [expenses]);
-
-  const saveExpenses = async () => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses))
-    } catch (error) {
-      console.error('Error while saving expenses', error)
-    }
-  };
-
-  const handleAddExpense = () => {
-    if (!amount || !category) {
-      alert('Fill all fields')
-      return;
-    }
-
-    const newExpense: Expense = {
-      id: Date.now(),
-      amount: parseFloat(amount),
-      category: category,
-      date: new Date().toISOString(),
-    }
-
-    setExpenses([...expenses, createExpense(Date.now(),
-      parseFloat(amount),
-      category,
-      new Date().toISOString())]);
-    setAmount('');
-  }
-
   return (
     <View style={styles.container}>
+      <TotalSpentText/>
+
       <TextInput
         style={amountTextboxStyles.amountInput}
         placeholder='Input amount'
@@ -204,25 +149,24 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      <Pressable
-        style={addExpenseButtonStyles.addButton}
-        onPress={handleAddExpense}>
-        <Text style={addExpenseButtonStyles.addButtonText}>Add Expense</Text>
-      </Pressable>
-
+      <AddExpenseButton
+        amount={amount}
+        category={category}
+        onPress={() => setAmount('')}>
+      </AddExpenseButton>
 
       <Pressable
         style={clearStorageButtonStyles.clearButton}
         onPress={async () => {
           console.info(`All keys: ${await AsyncStorage.getAllKeys()}`);
-          const storedExpenses = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSES);
+          const storedExpenses = await StorageService.get<string>(STORAGE_KEYS.EXPENSES);
           if (storedExpenses) {
             console.info(`storedExpenses: ${JSON.stringify(storedExpenses)}`)
             const parsed: Expense[] = JSON.parse(storedExpenses);
             console.info(`PARSED expenses: ${JSON.stringify(parsed)}`);
           }
-          await AsyncStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
-          await AsyncStorage.removeItem(STORAGE_KEYS.EXPENSES);
+          await StorageService.save<Expense[]>(STORAGE_KEYS.EXPENSES, []);
+          await StorageService.remove(STORAGE_KEYS.EXPENSES);
         }}>
         <Text style={clearStorageButtonStyles.clearButtonText}>CLEAR LOCAL STORAGE EXPENSES</Text>
       </Pressable>
@@ -231,19 +175,19 @@ export default function HomeScreen() {
         style={clearCategoriesButtonStyles.clearButton}
         onPress={async () => {
           console.info(`All keys: ${await AsyncStorage.getAllKeys()}`);
-          const storedCategories = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
+          const storedCategories = await StorageService.get<string>(STORAGE_KEYS.EXPENSE_CATEGORIES);
           if (storedCategories) {
             console.info(storedCategories)
             const parsed: Expense[] = JSON.parse(storedCategories);
             console.info(`PARSED categories: ${JSON.stringify(parsed)}`);
           }
-          await AsyncStorage.removeItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
+          await StorageService.remove(STORAGE_KEYS.EXPENSE_CATEGORIES);
         }}>
         <Text style={clearStorageButtonStyles.clearButtonText}>CLEAR LOCAL STORAGE CATEGORIES</Text>
       </Pressable>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -283,31 +227,6 @@ const chooseCategoryButtonStyles = StyleSheet.create({
   categoryButtonText: {
     fontSize: 16,
     color: '#333',
-  },
-});
-
-const addExpenseButtonStyles = StyleSheet.create({
-  addButton: {
-    backgroundColor: '#0a7ea4',
-    borderRadius: 8,
-    padding: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
 });
 
