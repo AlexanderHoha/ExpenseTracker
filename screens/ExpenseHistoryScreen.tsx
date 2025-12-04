@@ -1,14 +1,14 @@
-import { View, Text, StyleSheet, } from "react-native";
 import { ExpenseList } from "@/components/ExpenseHistoryScreenComponents/ExpenseList";
+import { StyleSheet, Text, View, } from "react-native";
 
 export default function HistoryScreen() {
     return (
         <View
             style={styles.container}>
-                <Text style={{ textAlign: 'center', fontSize: 25 }}>Expense history</Text>
-                <View style={{ flex: 1}}>
-                    <ExpenseList/>
-                </View>
+            <Text style={{ textAlign: 'center', fontSize: 25 }}>Expense history</Text>
+            <View style={{ flex: 1 }}>
+                <ExpenseList />
+            </View>
         </View>
     )
 };

@@ -11,7 +11,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier:": "com.ah.ExpenseTrackerApp",
-      "icon": "./assets/images/icon.png"
+      "icon": "./assets/images/icon.png",
+      "bundleIdentifier": "com.anonymous.ExpenseTrackerApp"
     },
     "android": {
       "adaptiveIcon": {

@@ -1,4 +1,4 @@
-export interface ExpenseCategory{
+export interface ExpenseCategory {
     id: number,
     name: string
 }

@@ -1,66 +1,31 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Modal, FlatList } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Expense } from '@/types/expense';
-import { STORAGE_KEYS } from '@/constants/storageKeys';
-import { DEFAULT_EXPENSE_CATEGORIES } from '@/constants/defaultExpenseCategories';
-import { ExpenseCategory } from '@/types/expenseCategory';
-import { createExpenseCategory } from '@/utils/factories/expenseCategoryFactory';
-import { StorageService } from '@/services/storageService';
+import { AddCategoryModal } from '@/components/HomeScreenComponents/AddCategoryModal';
 import { AddExpenseButton } from '@/components/HomeScreenComponents/AddExpenseButton';
+import { SelectCategoryModal } from '@/components/HomeScreenComponents/SelectCategoryModal';
 import { TotalSpentText } from '@/components/HomeScreenComponents/totalSpentText';
+import { STORAGE_KEYS } from '@/constants/storageKeys';
+import { StorageService } from '@/services/storageService';
+import { expensesStore } from '@/stores/expensesStore';
+import { Expense } from '@/types/expense';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function HomeScreen() {
   const [selectCategoryModalVisible, selectCategorySetModalVisible] = useState(false);
   const [addCategorymodalVisible, addCategorySetModalVisible] = useState(false);
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
-  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
-  const [newCategoryName, setNewCategoryName] = useState('');
 
   useEffect(() => {
     async function init() {
-      const loadedCategories: ExpenseCategory[] = await loadCategories();
-      console.log(`trying to set default category, all categories: ${JSON.stringify(loadedCategories)}`)
-      setCategory(loadedCategories[0].name);
     }
 
     init();
   }, []);
 
-  // If no categories in async storage - fill storage with default categories
-  const loadCategories = async () => {
-    try {
-      const existingCategories = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
-      if (existingCategories) {
-        let expenseCategories = JSON.parse(existingCategories) as ExpenseCategory[];
-        setCategories(expenseCategories);
-
-        return expenseCategories;
-      }
-
-      await AsyncStorage.setItem(STORAGE_KEYS.EXPENSE_CATEGORIES, JSON.stringify(DEFAULT_EXPENSE_CATEGORIES))
-      const defaultCategories = await AsyncStorage.getItem(STORAGE_KEYS.EXPENSE_CATEGORIES);
-      if (defaultCategories) {
-        let expenseCategories = JSON.parse(defaultCategories);
-        setCategories(expenseCategories);
-
-        return expenseCategories;
-      } else {
-        console.error('failed to set default categories');
-
-        return [];
-      }
-    } catch (e) {
-      console.error(`error while setting categories: ${e}`);
-
-      return [];
-    }
-  }
-
   return (
     <View style={styles.container}>
-      <TotalSpentText/>
+      <TotalSpentText />
 
       <TextInput
         style={amountTextboxStyles.amountInput}
@@ -81,73 +46,21 @@ export default function HomeScreen() {
         </Text>
       </Pressable>
 
-      <Modal
+      <SelectCategoryModal
         visible={selectCategoryModalVisible}
-        onRequestClose={() => selectCategorySetModalVisible(false)}
-        allowSwipeDismissal={true}>
-        <View style={modalStyles.modalOverlay}>
-          <View style={modalStyles.modalContent}>
-            <Text style={modalStyles.modalTitle}>Choose Category</Text>
-            <FlatList
-              data={categories.map(category => category.name)}
-              keyExtractor={(item: string) => item}
-              renderItem={({ item }: { item: string }) =>
-                <Pressable
-                  style={modalStyles.categoryItem}
-                  onPress={() => {
-                    selectCategorySetModalVisible(false);
-                    setCategory(item);
-                  }}
-                >
-                  <Text style={modalStyles.categoryItemText}>{item}</Text>
-                </Pressable>
-              }
-            />
-            <Pressable onPress={() => {
-              selectCategorySetModalVisible(false);
-              addCategorySetModalVisible(true);
-            }}>
-              <Text style={{ textAlign: 'center', fontSize: 25 }}>Add category</Text>
-            </Pressable>
-            <Pressable style={modalStyles.closeButton}
-              onPress={() => selectCategorySetModalVisible(false)}>
-              <Text style={modalStyles.closeButtonText}>Close</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => selectCategorySetModalVisible(false)}
+        onSelectCategory={(categoryName) => setCategory(categoryName)}
+        onAddCategoryPress={() => addCategorySetModalVisible(true)}>
+      </SelectCategoryModal>
 
-      <Modal
+      <AddCategoryModal
         visible={addCategorymodalVisible}
-        onRequestClose={() => addCategorySetModalVisible(false)}
-        allowSwipeDismissal={true}>
-        <View style={modalStyles.modalOverlay}>
-          <View style={modalStyles.modalContent}>
-            <TextInput style={amountTextboxStyles.amountInput}
-              placeholder='Category Name'
-              onChangeText={setNewCategoryName}>
-            </TextInput>
-            <Pressable onPress={async () => {
-              const lastCategoryId = Math.max(...categories.map(_ => _.id));
-              const categoryToAdd = createExpenseCategory(lastCategoryId + 1, newCategoryName);
-              const updatedCategories = [...categories, categoryToAdd];
-              setCategories(updatedCategories);
-              await AsyncStorage.setItem(STORAGE_KEYS.EXPENSE_CATEGORIES, JSON.stringify(updatedCategories))
-              addCategorySetModalVisible(false);
-              selectCategorySetModalVisible(true);
-            }}>
-              <Text style={{ textAlign: 'center' }}>Add Category</Text>
-            </Pressable>
-            <Pressable style={modalStyles.closeButton}
-              onPress={() => {
-                addCategorySetModalVisible(false);
-                selectCategorySetModalVisible(true);
-              }}>
-              <Text>Close</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => {
+          addCategorySetModalVisible(false);
+          selectCategorySetModalVisible(true);
+        }}
+        onNewCategoryAdded={(newCategory) => setCategory(newCategory)}>
+      </AddCategoryModal>
 
       <AddExpenseButton
         amount={amount}
@@ -173,15 +86,8 @@ export default function HomeScreen() {
 
       <Pressable
         style={clearCategoriesButtonStyles.clearButton}
-        onPress={async () => {
-          console.info(`All keys: ${await AsyncStorage.getAllKeys()}`);
-          const storedCategories = await StorageService.get<string>(STORAGE_KEYS.EXPENSE_CATEGORIES);
-          if (storedCategories) {
-            console.info(storedCategories)
-            const parsed: Expense[] = JSON.parse(storedCategories);
-            console.info(`PARSED categories: ${JSON.stringify(parsed)}`);
-          }
-          await StorageService.remove(STORAGE_KEYS.EXPENSE_CATEGORIES);
+        onPress={() => {
+          expensesStore.deleteAllExpenseCategoriesFromRealm();
         }}>
         <Text style={clearStorageButtonStyles.clearButtonText}>CLEAR LOCAL STORAGE CATEGORIES</Text>
       </Pressable>
