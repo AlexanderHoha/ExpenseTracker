@@ -1,8 +1,6 @@
 import { expensesStore } from "@/stores/expensesStore";
-import { Expense } from "@/types/expense";
-import { createExpense } from "@/utils/factories/expenseFactory";
 import { observer } from "mobx-react-lite";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Alert, Pressable, StyleSheet, Text } from "react-native";
 
 interface AddExpenseButtonProps {
     amount: string;
@@ -19,19 +17,22 @@ export const AddExpenseButton = observer((
 ) => {
     const handleAddExpense = () => {
         if (!amount || !category) {
-            alert('Fill all fields')
+            Alert.alert('Fill all fields')
             return;
         }
 
-        const newExpense: Expense = createExpense(
-            Date.now(),
-            parseFloat(amount),
-            category,
-            new Date().toISOString(),
-        );
-
-        expensesStore.addExpense(newExpense);
-        onPress();
+        const expenseCategory = expensesStore.getExpenseCategoryByName(category);
+        if (expenseCategory) {
+            expensesStore.addExpenseRealm({
+                amount: parseFloat(amount),
+                category: expenseCategory,
+                date: new Date()
+            }
+            );
+            onPress();
+        } else {
+            console.error('Failed to add expense')
+        }
     };
 
     return (

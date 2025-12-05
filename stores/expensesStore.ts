@@ -1,14 +1,11 @@
-import { STORAGE_KEYS } from "@/constants/storageKeys";
 import { ExpenseCategorySchema } from "@/schemas/ExpenseCategorySchema";
-import { StorageService } from "@/services/storageService";
-import { Expense } from "@/types/expense";
+import { ExpenseSchema } from "@/schemas/ExpenseSchema";
 import { ExpenseCategoryRealm } from "@/types/expenseCategoryRealm";
 import { ExpenseRealm } from "@/types/expenseRealm";
 import { makeAutoObservable, runInAction } from "mobx";
 import Realm from "realm";
 
 class ExpensesStore {
-    expenses: Expense[] = [];
     expensesRealm: ExpenseRealm[] = [];
     expenseCategoriesRealm: ExpenseCategoryRealm[] = [];
     private realm: Realm | null = null;
@@ -21,29 +18,96 @@ class ExpensesStore {
         this.realm = realm;
         this.initDefaultCategories();
         this.loadExpenseCategoriesFromRealm();
+        this.loadExpensesFromRealm();
     }
 
-    // addExpenseRealm(expense: Omit<Expense, '_id'>) {
-    //     
-    // }
+    getTotalSpent(): number {
+        return this.expensesRealm.reduce((total, expense) => total + expense.amount, 0);
+    };
+
+    addExpenseRealm(expense: Omit<ExpenseRealm, '_id'>) {
+        if (!this.realm) {
+            console.error('Realm is not initialized');
+            return;
+        }
+
+        try {
+            const category = this.realm.objectForPrimaryKey(
+                ExpenseCategorySchema,
+                new Realm.BSON.ObjectId(expense.category._id),
+            );
+
+            this.realm.write(() => {
+                this.realm!.create(ExpenseSchema, {
+                    _id: new Realm.BSON.ObjectId(),
+                    amount: expense.amount,
+                    category: category ?? undefined,
+                    date: expense.date
+                });
+            });
+
+            this.loadExpensesFromRealm();
+        } catch (e) {
+            console.error('Failed to add Expense', e)
+        }
+    }
 
     addExpenseCategoryRealm(expenseCategory: Omit<ExpenseCategoryRealm, '_id'>) {
-        this.realm?.write(() => {
-            this.realm?.create(ExpenseCategorySchema, {
-                _id: new Realm.BSON.ObjectId,
-                name: expenseCategory.name
-            })
-        });
+        if (!this.realm) {
+            console.error('Realm is not initialized');
+            return;
+        }
 
-        this.loadExpenseCategoriesFromRealm();
+        try {
+            this.realm.write(() => {
+                this.realm!.create(ExpenseCategorySchema, {
+                    _id: new Realm.BSON.ObjectId,
+                    name: expenseCategory.name
+                })
+            });
+
+            this.loadExpenseCategoriesFromRealm();
+        } catch (e) {
+            console.error('Failed to add Expense category', e)
+        }
+    }
+
+    getExpenseCategoryByName(name: string): ExpenseCategoryRealm | undefined {
+        return this.expenseCategoriesRealm.find(cat => cat.name === name);
     }
 
     loadExpensesFromRealm() {
+        if (!this.realm) {
+            console.error('Realm is not initialized');
+            return;
+        }
 
+        try {
+            const existingExpensesRealm = this.realm!.objects(ExpenseSchema);
+
+            runInAction(() => {
+                this.expensesRealm = Array.from(existingExpensesRealm).map(expense => ({
+                    _id: expense._id.toString(),
+                    amount: expense.amount,
+                    category: {
+                        _id: expense.category._id.toString(),
+                        name: expense.category.name
+                    },
+                    date: expense.date
+                }));
+            });
+        } catch (e) {
+            console.error("Failed to load expenses from Realm", e);
+        }
     }
 
     initDefaultCategories() {
-        const existingCategories = this.realm!.objects<ExpenseCategorySchema>(ExpenseCategorySchema);
+        if (!this.realm) {
+            console.error('Realm is not initialized');
+            return;
+        }
+
+        const existingCategories = this.realm.objects<ExpenseCategorySchema>(ExpenseCategorySchema);
         if (existingCategories.length > 0) return;
 
         const defaultCategories = [
@@ -63,8 +127,13 @@ class ExpensesStore {
     }
 
     loadExpenseCategoriesFromRealm() {
+        if (!this.realm) {
+            console.error('Realm is not initialized');
+            return;
+        }
+
         try {
-            const expenseCategories = this.realm!.objects<ExpenseCategorySchema>(ExpenseCategorySchema);
+            const expenseCategories = this.realm.objects(ExpenseCategorySchema);
 
             runInAction(() => {
                 this.expenseCategoriesRealm = Array.from(expenseCategories).map(category => ({
@@ -78,7 +147,12 @@ class ExpensesStore {
     }
 
     deleteAllExpenseCategoriesFromRealm() {
-        this.realm!.write(() => {
+        if (!this.realm) {
+            console.error('Realm is not initialized');
+            return;
+        }
+
+        this.realm.write(() => {
             const allCategories = this.realm!.objects(ExpenseCategorySchema);
             this.realm!.delete(allCategories);
         });
@@ -87,37 +161,6 @@ class ExpensesStore {
             this.expenseCategoriesRealm = [];
         });
     }
-
-
-    addExpense(expense: Expense) {
-        this.expenses.push(expense);
-        this.saveExpansesToStorage();
-        console.log("Expense added:", expense);
-        console.log(`All expenses:`, JSON.stringify(this.expenses));
-    };
-
-    getTotalSpent(): number {
-        return this.expenses.reduce((total, expense) => total + expense.amount, 0);
-    };
-
-    async saveExpansesToStorage() {
-        try {
-            await StorageService.save(STORAGE_KEYS.EXPENSES, this.expenses);
-        } catch (e) {
-            console.error("Failed to save expenses to storage", e);
-        }
-    };
-
-    async loadExpensesFromStorage() {
-        try {
-            const expenses = await StorageService.get<Expense[]>(STORAGE_KEYS.EXPENSES);
-            if (expenses) {
-                this.expenses = expenses;
-            }
-        } catch (e) {
-            console.error("Failed to load expenses from storage", e);
-        }
-    };
 };
 
 export const expensesStore = new ExpensesStore();

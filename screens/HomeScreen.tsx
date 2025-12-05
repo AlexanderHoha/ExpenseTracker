@@ -2,10 +2,7 @@ import { AddCategoryModal } from '@/components/HomeScreenComponents/AddCategoryM
 import { AddExpenseButton } from '@/components/HomeScreenComponents/AddExpenseButton';
 import { SelectCategoryModal } from '@/components/HomeScreenComponents/SelectCategoryModal';
 import { TotalSpentText } from '@/components/HomeScreenComponents/totalSpentText';
-import { STORAGE_KEYS } from '@/constants/storageKeys';
-import { StorageService } from '@/services/storageService';
 import { expensesStore } from '@/stores/expensesStore';
-import { Expense } from '@/types/expense';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';

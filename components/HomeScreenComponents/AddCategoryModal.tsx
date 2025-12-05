@@ -17,7 +17,7 @@ export const AddCategoryModal = observer(({
     const [newCategoryName, setNewCategoryName] = useState('');
 
     const handleAddNewCategory = () => {
-        if (newCategoryName.length == 0) {
+        if (newCategoryName.length === 0) {
             alert('Set category name')
             return;
         }

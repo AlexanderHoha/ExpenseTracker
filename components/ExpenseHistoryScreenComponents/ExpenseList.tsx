@@ -1,5 +1,4 @@
 import { expensesStore } from "@/stores/expensesStore";
-import { DateUtils } from "@/utils/dateUtils";
 import { observer } from "mobx-react-lite";
 import { useState } from "react";
 import { FlatList, RefreshControl, View, StyleSheet, Text } from "react-native";
@@ -9,7 +8,7 @@ export const ExpenseList = observer(() => {
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await expensesStore.loadExpensesFromStorage();
+        expensesStore.loadExpensesFromRealm();
         setRefreshing(false);
     }
 
@@ -17,8 +16,8 @@ export const ExpenseList = observer(() => {
         <FlatList
             style={{ flex: 1, }}
             contentContainerStyle={{ flexGrow: 1 }}
-            data={[...expensesStore.expenses].reverse()}
-            keyExtractor={(item) => item.id.toString()}
+            data={[...expensesStore.expensesRealm].reverse()}
+            keyExtractor={(item) => item._id.toString()}
             refreshControl={
                 <RefreshControl
                     refreshing={refreshing}
@@ -28,8 +27,8 @@ export const ExpenseList = observer(() => {
             renderItem={({ item }) => (
                 <View style={styles.item}>
                     <Text>{item.amount}</Text>
-                    <Text>{item.category}</Text>
-                    <Text>{DateUtils.toDateString(item.date)}</Text>
+                    <Text>{item.category.name}</Text>
+                    <Text>{item.date.toLocaleString()}</Text>
                 </View>
             )}>
         </FlatList>

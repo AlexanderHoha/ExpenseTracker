@@ -12,7 +12,6 @@ export default function Index() {
   }, []);
 
   async function init() {
-    await expensesStore.loadExpensesFromStorage();
     const realm = await RealmService.initialize();
     expensesStore.setRealm(realm);
     setInitializing(false);
